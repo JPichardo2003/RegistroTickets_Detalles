@@ -14,10 +14,10 @@ namespace RegistroTickets_Detalles.Shared.Models
         public int ClienteId { get; set; }
         [RegularExpression(@"^[a-zA-Z\s]+$", ErrorMessage = "Este campo no acepta digitos")]
         [Required(ErrorMessage = "Campo Obligatorio")]
-        public string? Nombres { get; set; }
+        public string? Nombre { get; set; }
         [RegularExpression(@"^\d{10}$", ErrorMessage = "Ingrese el telefono correctamente, Ejemplo: 8094587412")]
         [Required(ErrorMessage = "Campo Obligatorio")]
-        public string? Telefono { get; set; }
+        public string? Teléfono { get; set; }
         [RegularExpression(@"^\d{10}$", ErrorMessage = "Ingrese el Celular correctamente, Ejemplo: 8294587412")]
         [Required(ErrorMessage = "Campo Obligatorio")]
         public string? Celular { get; set; }
@@ -29,7 +29,7 @@ namespace RegistroTickets_Detalles.Shared.Models
         public string? Email { get; set; }
         [StringLength(50, ErrorMessage = "No Puede Exceder los 50 Caracteres")]
         [Required(ErrorMessage = "Campo Obligatorio")]
-        public string? Direccion { get; set; }
+        public string? Dirección { get; set; }
 
         [ForeignKey("ClienteId")]
         public ICollection<Tickets> Tickets { get; set; } = new List<Tickets>();
