@@ -65,8 +65,6 @@
 
     public Clientes clientes { get; set; } = new Clientes();
 
-    public string Mensaje { get; set; } = string.Empty;
-
     protected override async Task OnInitializedAsync()
     {
         if (ClienteId > 0)
@@ -78,11 +76,17 @@
 
     public async Task Buscar()
     {
-        var clienteEncontrado = await httpClient.GetFromJsonAsync<Clientes>($"api/Clientes/{clientes.ClienteId}");
-        if (clienteEncontrado != null)
+        var clienteIdEncontrado = (await httpClient.GetFromJsonAsync<List<Clientes>>($"api/Clientes"))!
+        .ToList()
+        .Any(c => c.ClienteId == clientes.ClienteId);
+        if(clienteIdEncontrado)
         {
-            this.clientes = clienteEncontrado;
-            StateHasChanged();
+            var clienteEncontrado = await httpClient.GetFromJsonAsync<Clientes>($"api/Clientes/{clientes.ClienteId}");
+            if (clienteEncontrado != null)
+            {
+                this.clientes = clienteEncontrado;
+                StateHasChanged();
+            }
         }
         else
         {
@@ -94,7 +98,6 @@
                     Duration = 4_000
                 };
             notificationService.Notify(mensaje);
-            //Mensaje = "Cliente no encontrado";
             return;
         }
     }
@@ -104,7 +107,6 @@
         using var response = await httpClient.PostAsJsonAsync("api/Clientes", clientes);
         if (!response.IsSuccessStatusCode)
         {
-            Mensaje = response.ReasonPhrase ?? "error";
             var mensaje = new NotificationMessage
                 {
                     Severity = NotificationSeverity.Error,
@@ -135,7 +137,6 @@
     public void Nuevo()
     {
         this.clientes = new Clientes();
-        Mensaje = string.Empty;
     }
 
     public async Task Eliminar()
@@ -143,7 +144,14 @@
         using var response = await httpClient.DeleteAsync($"api/Clientes/{clientes.ClienteId}");
         if (!response.IsSuccessStatusCode)
         {
-            Mensaje = response.ReasonPhrase ?? "error";
+            var mensaje = new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error",
+                    Detail = "No es posible Eliminar",
+                    Duration = 4_000
+                };
+            notificationService.Notify(mensaje);
             return;
         }
         else
@@ -152,7 +160,7 @@
                 {
                     Severity = NotificationSeverity.Success,
                     Summary = "Validacion",
-                    Detail = "Ticket Eliminado Correctamente",
+                    Detail = "Cliente Eliminado Correctamente",
                     Duration = 4_000
                 };
             notificationService.Notify(mensaje);

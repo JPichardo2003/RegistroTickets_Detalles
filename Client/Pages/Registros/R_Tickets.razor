@@ -43,25 +43,28 @@
                 </div>
             </div>
         </div>
-        @* Detalle *@
-        <div class="card-header">
+        <div class="card-footer">
+            <button type="button" class="btn btn-primary" @onclick="Nuevo">Nuevo <i class="oi oi-file" /></button>
+            <button class="btn btn-success">Guardar <i class="oi oi-document" /></button>
+            <button type="button" class="btn btn-danger" @onclick="Eliminar">Eliminar <i class="oi oi-trash" /></button>
+        </div>
+        @*Detalles:*@
+        <div class="card card-header">
             <h3>Detalle del ticket</h3>
         </div>
-
         <div>
             <label class="form-label"><span class="oi oi-person" /> Nombre</label>
-            <InputText @bind-Value="Detalles.Emisor" class="form-control"></InputText>
+            <InputText @bind-Value="Detalles.Emisor" class="form-control" placeholder="Enel R. Almonte."></InputText>
+            <ValidationMessage For="@(() => Detalles.Emisor)" />
         </div>
-
         <div>
             <label class="form-label"><span class="oi oi-envelope-closed" /> Mensaje</label>
             <InputTextArea @bind-Value="Detalles.Mensaje" class="form-control" placeholder="Agregue un mensaje."></InputTextArea>
+            <ValidationMessage For="@(() => Detalles.Mensaje)" />
         </div>
-        @* Agregar *@
         <div class="card-footer d-flex justify-content-center">
             <button type="button" class="btn btn-outline-success" @onclick="AgregarDetalle">Agregar</button>
         </div>
-
         <table class='table table-sm'>
             <thead>
                 <tr>
@@ -84,11 +87,6 @@
                 }
             </tbody>
         </table>
-        <div class="card-footer">
-            <button type="button" class="btn btn-primary" @onclick="Nuevo">Nuevo <i class="oi oi-file" /></button>
-            <button class="btn btn-success">Guardar <i class="oi oi-document" /></button>
-            <button type="button" class="btn btn-danger" @onclick="Eliminar">Eliminar <i class="oi oi-trash" /></button>
-        </div>
     </div>
 </EditForm>
 
@@ -102,7 +100,8 @@
 
     public TicketsDetalle Detalles { get; set; } = new TicketsDetalle();
 
-    public string Mensaje { get; set; } = string.Empty;
+    public bool mensajeVacio;
+    public bool emisorVacio;
 
     protected override async Task OnInitializedAsync()
     {
@@ -115,7 +114,8 @@
 
     private async Task<Tickets> BuscarTicket(int ticketId)
     {
-        var ticketEncontrado = await httpClient.GetFromJsonAsync<Tickets>($"api/Tickets/{tickets.TicketId}");
+        Tickets tickets = new Tickets();
+        var ticketEncontrado = await httpClient.GetFromJsonAsync<Tickets>($"api/Tickets/{ticketId}");
         if (ticketEncontrado != null)
             return tickets = ticketEncontrado;
         return new Tickets();
@@ -123,15 +123,29 @@
 
     public async Task Buscar()
     {
-        var ticketEncontrado = await httpClient.GetFromJsonAsync<Tickets>($"api/Tickets/{tickets.TicketId}");
-        if (ticketEncontrado != null)
+        var ticketIdEncontrado = (await httpClient.GetFromJsonAsync<List<Tickets>>($"api/Tickets"))!
+        .ToList()
+        .Any(t => t.TicketId == tickets.TicketId);
+        if(ticketIdEncontrado)
         {
-            this.tickets = ticketEncontrado;
-            StateHasChanged();
+            var ticketEncontrado = await httpClient.GetFromJsonAsync<Tickets>($"api/Tickets/{tickets.TicketId}");
+            if (ticketEncontrado != null)
+            {
+                this.tickets = ticketEncontrado;
+                StateHasChanged();
+            }
         }
         else
         {
-            Mensaje = "Ticket no encontrado";
+            var mensaje = new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error",
+                    Detail = "No se encontro ningun Ticket",
+                    Duration = 4_000
+                };
+            notificationService.Notify(mensaje);
+            return;
         }
     }
 
@@ -147,8 +161,7 @@
                     Detail = "No se pudo Guardar correctamente, verifique los campos",
                     Duration = 4_000
                 };
-            notificationService.Notify(mensaje);
-            Mensaje = response.ReasonPhrase ?? "error";
+            notificationService.Notify(mensaje);    
             return;
         }
         var ticketDevuelto = await response.Content.ReadFromJsonAsync<Tickets>();
@@ -165,7 +178,6 @@
             tickets = ticketDevuelto;
             StateHasChanged();
             this.Nuevo();
-            //StateHasChanged();
         }
     }
 
@@ -173,7 +185,6 @@
     {
         this.tickets = new Tickets();
         this.Detalles = new TicketsDetalle();
-        Mensaje = string.Empty;
     }
 
     public async Task Eliminar()
@@ -181,7 +192,14 @@
         using var response = await httpClient.DeleteAsync($"api/Tickets/{tickets.TicketId}");
         if (!response.IsSuccessStatusCode)
         {
-            Mensaje = response.ReasonPhrase ?? "error";
+            var mensaje = new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error",
+                    Detail = "El Ticket no fue Eliminado Correctamente",
+                    Duration = 4_000
+                };
+            notificationService.Notify(mensaje);
             return;
         }
         else
@@ -198,10 +216,29 @@
         Nuevo();
     }
 
+    public bool Validar()
+    {
+        mensajeVacio = string.IsNullOrEmpty(Detalles.Mensaje);
+        emisorVacio = string.IsNullOrEmpty(Detalles.Emisor);
+        return mensajeVacio || emisorVacio;
+    }
+
     public void AgregarDetalle()
     {
         if (tickets != null)
         {
+            if(Validar())
+            {
+                var mensaje = new NotificationMessage
+                    {
+                        Severity = NotificationSeverity.Error,
+                        Summary = "Error",
+                        Detail = "Llene los campos del detalle",
+                        Duration = 4_000
+                    };
+                notificationService.Notify(mensaje);
+                return;
+            }
             Detalles.TicketId = tickets.TicketId;
 
             tickets.TicketsDetalle.Add(Detalles);
@@ -210,7 +247,7 @@
         }
     }
 
-    public void RemoverDetalle(TicketsDetalle detalle)
+    public async Task RemoverDetalle(TicketsDetalle detalle)
     {
 
         var detalleEncontrado = tickets.TicketsDetalle.FirstOrDefault(t => t.DetalleId == detalle.DetalleId);
@@ -218,7 +255,9 @@
         {
             var ticket = BuscarTicket(detalleEncontrado.TicketId);
             detalle = detalleEncontrado;
+            Detalles = detalleEncontrado;
             tickets.TicketsDetalle.Remove(detalle);
-        }
+            await httpClient.DeleteAsync($"api/Tickets/DeleteTicketsMessages/{detalle.DetalleId}");
+        }   
     }
 }
