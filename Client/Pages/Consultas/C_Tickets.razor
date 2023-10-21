@@ -1,0 +1,79 @@
+﻿@page "/ConsultaTicket";
+@inject HttpClient httpClient
+
+<div class="card-header row">
+    <label>Filtrar ID:</label>
+    <div class="col-md-6 input-group filter-input">
+        <InputNumber @bind-Value="Filtro" class="form-control"></InputNumber>
+        <div class="input-group-append">
+            <button type="button" class="btn btn-dark oi oi-magnifying-glass" @onclick="Buscar"></button>
+        </div>
+    </div>
+</div>
+
+@if (Tickets is not null)
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>Ticket ID</th>
+                    <th>Cliente ID</th>
+                    <th>Fecha</th>
+                    <th>Asunto</th>
+                    <th>Descripci&Oacute;n</th>
+                    <th>Solicitado Por</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var tickets in Tickets)
+                {
+                    <tr>
+                        <td>@tickets.TicketId</td>
+                        <td>@tickets.ClienteId</td>
+                        <td>@tickets.Fecha.ToString("dd/MM/yyyy")</td>
+                        <td>@tickets.Asunto</td>
+                        <td>@tickets.Descripción</td>
+                        <td>@tickets.SolicitadoPor</td>
+                        <td><a href="RegistroTicket/@tickets.TicketId">Ver</a></td>
+                    </tr>
+                }
+                <tr>
+                    <td>Conteo: @Conteo</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+}
+
+
+@code {
+
+    public int Filtro { get; set; }
+    public List<Tickets>? Tickets { get; set; }
+    public Tickets? tickets { get; set; } = new Tickets();
+    public int Conteo { get; set; }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Buscar();
+    }
+
+    public async Task Buscar()
+    {
+        if (Filtro == 0)
+        {
+            Tickets = await httpClient.GetFromJsonAsync<List<Tickets>>($"api/Tickets");
+        }
+        else
+        {
+            var listaTickets = await httpClient.GetFromJsonAsync<List<Tickets>>($"api/Tickets/");
+            Tickets = listaTickets?.Where(t => t.TicketId == Filtro).ToList();
+        }
+        Conteo = Tickets != null ? Tickets!.Count() : 0;
+        StateHasChanged();
+    }
+
+}
