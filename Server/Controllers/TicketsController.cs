@@ -84,17 +84,12 @@ namespace RegistroTickets_Detalles.Server.Controllers
             return NoContent();
         }
 
-        [HttpGet("Exist/{id}")]
-        public bool Exist(int id)
-        {
-            return _context.Tickets.Any(x => x.TicketId == id);
-        }
         // POST: api/Tickets
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Tickets>> PostProduct(Tickets tickets) //Save
+        public async Task<ActionResult<Tickets>> PostTickets(Tickets tickets) //Save
         {
-            if (!Exist(tickets.TicketId))
+            if (!TicketsExists(tickets.TicketId))
                 _context.Tickets.Add(tickets);
             else
                 _context.Tickets.Update(tickets);
@@ -121,6 +116,25 @@ namespace RegistroTickets_Detalles.Server.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        // DELETE: api/Tickets/5
+        [HttpDelete("DeleteTicketsMessages/{id}")]
+        public async Task<IActionResult> DeleteTicketsMessages(int id)
+        {
+            if (id <= 0)
+            {
+                return BadRequest();
+            }
+            var ticket = await _context.TicketsDetalle.FirstOrDefaultAsync(td => td.DetalleId == id);
+            if (ticket is null)
+            {
+                return NotFound();
+            }
+            _context.TicketsDetalle.Remove(ticket);
+            await _context.SaveChangesAsync();
+
+            return Ok();
         }
 
         private bool TicketsExists(int id)
