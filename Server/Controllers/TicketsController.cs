@@ -40,7 +40,10 @@ namespace RegistroTickets_Detalles.Server.Controllers
           {
               return NotFound();
           }
-            var tickets = await _context.Tickets.FindAsync(id);
+            var tickets = await _context.Tickets
+            .Where(e => e.TicketId == id).Include(e => e.TicketsDetalle)
+            .AsNoTracking()
+            .FirstOrDefaultAsync();
 
             if (tickets == null)
             {
@@ -81,19 +84,23 @@ namespace RegistroTickets_Detalles.Server.Controllers
             return NoContent();
         }
 
+        [HttpGet("Exist/{id}")]
+        public bool Exist(int id)
+        {
+            return _context.Tickets.Any(x => x.TicketId == id);
+        }
         // POST: api/Tickets
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Tickets>> PostTickets(Tickets tickets)
+        public async Task<ActionResult<Tickets>> PostProduct(Tickets tickets) //Save
         {
-          if (_context.Tickets == null)
-          {
-              return Problem("Entity set 'Contexto.Tickets'  is null.");
-          }
-            _context.Tickets.Add(tickets);
-            await _context.SaveChangesAsync();
+            if (!Exist(tickets.TicketId))
+                _context.Tickets.Add(tickets);
+            else
+                _context.Tickets.Update(tickets);
 
-            return CreatedAtAction("GetTickets", new { id = tickets.TicketId }, tickets);
+            await _context.SaveChangesAsync();
+            return Ok(tickets);
         }
 
         // DELETE: api/Tickets/5
