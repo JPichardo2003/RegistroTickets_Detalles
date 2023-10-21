@@ -86,7 +86,16 @@
         }
         else
         {
-            Mensaje = "Cliente no encontrado";
+            var mensaje = new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error",
+                    Detail = "No se encontro ningun cliente",
+                    Duration = 4_000
+                };
+            notificationService.Notify(mensaje);
+            //Mensaje = "Cliente no encontrado";
+            return;
         }
     }
 
@@ -96,6 +105,14 @@
         if (!response.IsSuccessStatusCode)
         {
             Mensaje = response.ReasonPhrase ?? "error";
+            var mensaje = new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error",
+                    Detail = "No es posible Guardar",
+                    Duration = 4_000
+                };
+            notificationService.Notify(mensaje);
             return;
         }
         var clienteDevuelto = await response.Content.ReadFromJsonAsync<Clientes>();
@@ -130,6 +147,17 @@
             return;
         }
         else
-            Nuevo();
+        {
+            var mensaje = new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Validacion",
+                    Detail = "Ticket Eliminado Correctamente",
+                    Duration = 4_000
+                };
+            notificationService.Notify(mensaje);
+
+        }
+        Nuevo();
     }
 }
