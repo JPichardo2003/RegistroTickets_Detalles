@@ -2,12 +2,34 @@
 @inject HttpClient httpClient
 
 <div class="card-header row">
-    <label>Filtrar ID:</label>
+    <div class="col-md-4">
+        <label>Desde: </label>
+        <InputDate @bind-Value="Desde" class="form-control id-input"></InputDate>
+    </div>
+    <div class="col-md-4">
+        <label>Hasta: </label>
+        <InputDate @bind-Value="Hasta" class="form-control id-input"></InputDate>
+    </div>
+    <label>Filtrar Por:</label>
     <div class="col-md-6 input-group filter-input">
-        <InputNumber @bind-Value="Filtro" class="form-control"></InputNumber>
+        <InputSelect @bind-Value="Filtro" class="form-select">
+            <option value="1">Ticket Id</option>
+            <option value="2">Asunto</option>
+        </InputSelect>
         <div class="input-group-append">
             <button type="button" class="btn btn-dark oi oi-magnifying-glass" @onclick="Buscar"></button>
         </div>
+    </div>
+    <div class="col-md-6">
+        @switch (Filtro)
+        {
+            case 1:
+                <InputNumber @bind-Value="tickets!.TicketId" class="form-control"></InputNumber>
+                break;
+            case 2:
+                <InputText @bind-Value="tickets!.Asunto" class="form-control"></InputText>
+                break;
+        }
     </div>
 </div>
 
@@ -55,25 +77,35 @@
     public Tickets? tickets { get; set; } = new Tickets();
     public int Conteo { get; set; }
 
+    public DateTime Desde { get; set; }
+    public DateTime Hasta { get; set; }
+
 
     protected override async Task OnInitializedAsync()
     {
         await Buscar();
+        Desde = DateTime.Now.AddMonths(-1);
+        Hasta = DateTime.Now;
     }
 
     public async Task Buscar()
     {
-        if (Filtro == 0)
+        if (Filtro == 1 && tickets!.TicketId > 0)
         {
-            Tickets = await httpClient.GetFromJsonAsync<List<Tickets>>($"api/Tickets");
+            Tickets = (await httpClient.GetFromJsonAsync<List<Tickets>>($"api/Tickets"))!.Where(t => t.TicketId == tickets!.TicketId && t.Fecha >= Desde.Date && t.Fecha <= Hasta).ToList();
+            StateHasChanged();
+        }else
+        if(Filtro == 2 && !string.IsNullOrEmpty(tickets!.Asunto))
+        {
+            Tickets = (await httpClient.GetFromJsonAsync<List<Tickets>>($"api/Tickets"))!.Where(t => t.Asunto!.ToLower() == tickets!.Asunto.ToLower() && t.Fecha >= Desde.Date && t.Fecha <= Hasta).ToList();
+            StateHasChanged();
         }
         else
         {
-            var listaTickets = await httpClient.GetFromJsonAsync<List<Tickets>>($"api/Tickets/");
-            Tickets = listaTickets?.Where(t => t.TicketId == Filtro).ToList();
+            Tickets = await httpClient.GetFromJsonAsync<List<Tickets>>($"api/Tickets");
+            StateHasChanged();
         }
         Conteo = Tickets != null ? Tickets!.Count() : 0;
-        StateHasChanged();
     }
 
 }
