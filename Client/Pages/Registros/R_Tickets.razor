@@ -220,7 +220,7 @@
     {
         mensajeVacio = string.IsNullOrEmpty(Detalles.Mensaje);
         emisorVacio = string.IsNullOrEmpty(Detalles.Emisor);
-        return mensajeVacio || emisorVacio;
+        return mensajeVacio || emisorVacio || Detalles.Emisor!.Any(Char.IsDigit);
     }
 
     public void AgregarDetalle()
